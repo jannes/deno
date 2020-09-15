@@ -657,6 +657,7 @@ pub fn main() {
     Some(level) => level,
     None => Level::Info, // Default log level
   };
+  let num_threads = flags.num_threads;
   env_logger::Builder::from_env(
     env_logger::Env::default()
       .default_filter_or(log_level.to_level_filter().to_string()),
@@ -763,9 +764,8 @@ pub fn main() {
     _ => unreachable!(),
   };
 
-  let num_threads = &flags.num_threads;
-  let result = if *num_threads != 0 {
-    tokio_util::run_basic_custom_pool(fut, *num_threads)
+  let result = if num_threads != 0 {
+    tokio_util::run_basic_custom_pool(fut, num_threads)
   } else {
     tokio_util::run_basic(fut)
   };
