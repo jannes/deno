@@ -126,7 +126,7 @@ fn run_worker_thread(
     // - load provided module or code
     // - start driving worker's event loop
 
-    let mut rt = create_basic_runtime();
+    let mut rt = create_basic_runtime(32);
 
     // TODO: run with using select with terminate
 

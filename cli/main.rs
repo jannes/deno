@@ -764,8 +764,8 @@ pub fn main() {
   };
 
   let num_threads = &flags.num_threads;
-  let result = if num_threads != 0 {
-    tokio_util::run_basic_custom_pool(fut, *num_threads);
+  let result = if *num_threads != 0 {
+    tokio_util::run_basic_custom_pool(fut, *num_threads)
   } else {
     tokio_util::run_basic(fut)
   };
