@@ -1295,7 +1295,7 @@ fn ca_file_arg_parse(flags: &mut Flags, matches: &clap::ArgMatches) {
 }
 
 fn num_thread_arg<'a, 'b>() -> Arg<'a, 'b> {
-  Arg::with_name("max amount of threads for tokio runtime")
+  Arg::with_name("num-threads")
     .long("num-threads")
     .value_name("NUMBER")
     .require_equals(true)
