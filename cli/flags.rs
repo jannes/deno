@@ -1297,6 +1297,9 @@ fn ca_file_arg_parse(flags: &mut Flags, matches: &clap::ArgMatches) {
 fn num_thread_arg<'a, 'b>() -> Arg<'a, 'b> {
   Arg::with_name("max amount of threads for tokio runtime")
     .long("num-threads")
+    .value_name("NUMBER")
+    .require_equals(true)
+    .takes_value(true)
     .help(
       "set the maximum amount of threads the tokio runtime uses (default 32)",
     )
