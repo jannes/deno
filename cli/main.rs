@@ -763,7 +763,12 @@ pub fn main() {
     _ => unreachable!(),
   };
 
-  let result = tokio_util::run_basic(fut);
+  let num_threads = &flags.num_threads;
+  let result = if num_threads != 0 {
+    tokio_util::run_basic_custom_pool(fut, *num_threads);
+  } else {
+    tokio_util::run_basic(fut)
+  };
   if let Err(err) = result {
     let msg = format!("{}: {}", colors::red_bold("error"), err.to_string(),);
     eprintln!("{}", msg);

@@ -118,6 +118,7 @@ pub struct Flags {
   pub no_check: bool,
   pub no_prompts: bool,
   pub no_remote: bool,
+  pub num_threads: usize,
   pub read_allowlist: Vec<PathBuf>,
   pub reload: bool,
   pub seed: Option<u64>,
@@ -525,6 +526,7 @@ fn run_test_args_parse(flags: &mut Flags, matches: &clap::ArgMatches) {
   ca_file_arg_parse(flags, matches);
   inspect_arg_parse(flags, matches);
   unstable_arg_parse(flags, matches);
+  num_thread_arg_parse(flags, matches);
 
   if matches.is_present("cached-only") {
     flags.cached_only = true;
@@ -724,38 +726,38 @@ fn repl_subcommand<'a, 'b>() -> App<'a, 'b> {
 
 fn install_subcommand<'a, 'b>() -> App<'a, 'b> {
   permission_args(SubCommand::with_name("install"))
-        .setting(AppSettings::TrailingVarArg)
-        .arg(
-          Arg::with_name("cmd")
-            .required(true)
-            .multiple(true)
-            .allow_hyphen_values(true))
-        .arg(
-          Arg::with_name("name")
-          .long("name")
-          .short("n")
-          .help("Executable file name")
-          .takes_value(true)
-          .required(false))
-        .arg(
-          Arg::with_name("root")
-            .long("root")
-            .help("Installation root")
-            .takes_value(true)
-            .multiple(false))
-        .arg(
-          Arg::with_name("force")
-            .long("force")
-            .short("f")
-            .help("Forcefully overwrite existing installation")
-            .takes_value(false))
-        .arg(no_check_arg())
-        .arg(ca_file_arg())
-        .arg(unstable_arg())
-        .arg(config_arg())
-        .about("Install script as an executable")
-        .long_about(
-"Installs a script as an executable in the installation root's bin directory.
+    .setting(AppSettings::TrailingVarArg)
+    .arg(
+      Arg::with_name("cmd")
+        .required(true)
+        .multiple(true)
+        .allow_hyphen_values(true))
+    .arg(
+      Arg::with_name("name")
+        .long("name")
+        .short("n")
+        .help("Executable file name")
+        .takes_value(true)
+        .required(false))
+    .arg(
+      Arg::with_name("root")
+        .long("root")
+        .help("Installation root")
+        .takes_value(true)
+        .multiple(false))
+    .arg(
+      Arg::with_name("force")
+        .long("force")
+        .short("f")
+        .help("Forcefully overwrite existing installation")
+        .takes_value(false))
+    .arg(no_check_arg())
+    .arg(ca_file_arg())
+    .arg(unstable_arg())
+    .arg(config_arg())
+    .about("Install script as an executable")
+    .long_about(
+      "Installs a script as an executable in the installation root's bin directory.
   deno install --allow-net --allow-read https://deno.land/std/http/file_server.ts
   deno install https://deno.land/std/examples/colors.ts
 
@@ -1148,6 +1150,7 @@ fn run_test_args<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     .arg(no_remote_arg())
     .arg(v8_flags_arg())
     .arg(ca_file_arg())
+    .arg(num_thread_arg())
     .arg(
       Arg::with_name("cached-only")
         .long("cached-only")
@@ -1173,7 +1176,7 @@ fn run_subcommand<'a, 'b>() -> App<'a, 'b> {
     .arg(script_arg())
     .about("Run a program given a filename or url to the module. Use '-' as a filename to read from stdin.")
     .long_about(
-	  "Run a program given a filename or url to the module.
+      "Run a program given a filename or url to the module.
 
 By default all programs are run in sandbox without access to disk, network or
 ability to spawn subprocesses.
@@ -1289,6 +1292,27 @@ fn ca_file_arg<'a, 'b>() -> Arg<'a, 'b> {
 
 fn ca_file_arg_parse(flags: &mut Flags, matches: &clap::ArgMatches) {
   flags.ca_file = matches.value_of("cert").map(ToOwned::to_owned);
+}
+
+fn num_thread_arg<'a, 'b>() -> Arg<'a, 'b> {
+  Arg::with_name("max amount of threads for tokio runtime")
+    .long("num-threads")
+    .help(
+      "set the maximum amount of threads the tokio runtime uses (default 32)",
+    )
+}
+
+fn num_thread_arg_parse(flags: &mut Flags, matches: &ArgMatches) {
+  if let Some(num_threads) = matches.value_of("num-threads") {
+    // TODO: use validator (like inspect_args)
+    let amount: usize = num_threads
+      .parse()
+      .expect("expected valid non-negative integer for num-threads");
+    if amount < 1 {
+      panic!("expected non-zero integer for num-threads");
+    }
+    flags.num_threads = amount;
+  }
 }
 
 fn unstable_arg<'a, 'b>() -> Arg<'a, 'b> {
@@ -2000,7 +2024,7 @@ mod tests {
       Flags {
         subcommand: DenoSubcommand::Info {
           json: false,
-          file: None
+          file: None,
         },
         ..Flags::default()
       }
@@ -2012,7 +2036,7 @@ mod tests {
       Flags {
         subcommand: DenoSubcommand::Info {
           json: true,
-          file: None
+          file: None,
         },
         ..Flags::default()
       }
