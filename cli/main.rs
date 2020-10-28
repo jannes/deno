@@ -707,6 +707,8 @@ pub fn main() {
   let args: Vec<String> = env::args().collect();
   let flags = flags::flags_from_vec(args);
 
+  let num_threads = flags.num_threads;
+
   if let Some(ref v8_flags) = flags.v8_flags {
     let v8_flags_includes_help = v8_flags
       .iter()
@@ -841,7 +843,11 @@ pub fn main() {
     }
   };
 
-  let result = tokio_util::run_basic(fut);
+  let result = if num_threads != 0 {
+    tokio_util::run_basic_custom_pool(fut, num_threads)
+  } else {
+    tokio_util::run_basic(fut)
+  };
   if let Err(err) = result {
     let msg = format!("{}: {}", colors::red_bold("error"), err.to_string(),);
     eprintln!("{}", msg);

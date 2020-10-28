@@ -117,6 +117,7 @@ pub struct Flags {
   pub no_check: bool,
   pub no_prompts: bool,
   pub no_remote: bool,
+  pub num_threads: usize,
   pub read_allowlist: Vec<PathBuf>,
   pub reload: bool,
   pub repl: bool,
@@ -501,6 +502,7 @@ fn compile_args<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
   app
     .arg(import_map_arg())
     .arg(no_remote_arg())
+    .arg(num_thread_arg())
     .arg(config_arg())
     .arg(no_check_arg())
     .arg(reload_arg())
@@ -512,6 +514,7 @@ fn compile_args<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
 fn compile_args_parse(flags: &mut Flags, matches: &clap::ArgMatches) {
   import_map_arg_parse(flags, matches);
   no_remote_arg_parse(flags, matches);
+  num_thread_arg_parse(flags, matches);
   config_arg_parse(flags, matches);
   no_check_arg_parse(flags, matches);
   reload_arg_parse(flags, matches);
@@ -1449,6 +1452,30 @@ fn no_remote_arg<'a, 'b>() -> Arg<'a, 'b> {
 fn no_remote_arg_parse(flags: &mut Flags, matches: &clap::ArgMatches) {
   if matches.is_present("no-remote") {
     flags.no_remote = true;
+  }
+}
+
+fn num_thread_arg<'a, 'b>() -> Arg<'a, 'b> {
+  Arg::with_name("num-threads")
+    .long("num-threads")
+    .value_name("NUMBER")
+    .require_equals(true)
+    .takes_value(true)
+    .help(
+      "set the maximum amount of threads the tokio runtime uses (default 32)",
+    )
+}
+
+fn num_thread_arg_parse(flags: &mut Flags, matches: &ArgMatches) {
+  if let Some(num_threads) = matches.value_of("num-threads") {
+    // TODO: use validator (like inspect_args)
+    let amount: usize = num_threads
+      .parse()
+      .expect("expected valid non-negative integer for num-threads");
+    if amount < 1 {
+      panic!("expected non-zero integer for num-threads");
+    }
+    flags.num_threads = amount;
   }
 }
 
